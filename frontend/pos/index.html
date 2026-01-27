@@ -1,0 +1,1038 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>Cafe POS</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #f2f4f7;
+      margin: 0;
+      padding: 16px;
+      display: flex;
+      gap: 16px;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    button {
+      font-family: 'Inter', sans-serif;
+    }
+
+    .panel {
+      background: #fff;
+      border-radius: 12px;
+      padding: 16px;
+      width: 25%;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, .08);
+      position: relative;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+    }
+
+    h3 {
+      margin-top: 0;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* ===== ENHANCED MENU UI ===== */
+    .menu-controls {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+
+    .menu-search {
+      flex: 1;
+      padding: 10px 12px;
+      border: 2px solid #e5e7eb;
+      border-radius: 8px;
+      font-size: 14px;
+      transition: border-color 0.2s;
+    }
+
+    .menu-search:focus {
+      outline: none;
+      border-color: #2563eb;
+    }
+
+    .menu-filter {
+      padding: 10px 12px;
+      border: 2px solid #e5e7eb;
+      border-radius: 8px;
+      background: white;
+      font-size: 13px;
+      font-weight: 600;
+      color: #374151;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+
+    .menu-filter:hover {
+      border-color: #2563eb;
+      background: #eff6ff;
+    }
+
+    .menu-filter.active {
+      background: #2563eb;
+      color: white;
+      border-color: #2563eb;
+    }
+
+    .menu-category {
+      margin-bottom: 20px;
+    }
+
+    .menu-category h4 {
+      margin: 0 0 12px 0;
+      font-size: 15px;
+      font-weight: 700;
+      color: #1f2937;
+      border-bottom: 2px solid #e5e7eb;
+      padding-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .menu-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+
+    .menu-card {
+      background: #f9fafb;
+      border: 2px solid transparent;
+      border-radius: 12px;
+      padding: 14px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .menu-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, #2563eb, #3b82f6);
+      transform: scaleX(0);
+      transition: transform 0.2s ease;
+    }
+
+    .menu-card:hover {
+      background: #eff6ff;
+      border-color: #2563eb;
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(37, 99, 235, 0.15);
+    }
+
+    .menu-card:hover::before {
+      transform: scaleX(1);
+    }
+
+    .menu-name {
+      font-size: 15px;
+      font-weight: 600;
+      color: #111827;
+      margin-bottom: 4px;
+      line-height: 1.3;
+    }
+
+    .menu-price {
+      font-size: 16px;
+      font-weight: 700;
+      color: #2563eb;
+      margin-top: 2px;
+    }
+
+    .menu-item-count {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      background: #dbeafe;
+      color: #1e40af;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 12px;
+    }
+
+    /* ===== BILL UI ===== */
+    .bill-box {
+      background: #f9fafb;
+      border-radius: 10px;
+      padding: 12px;
+      position: relative;
+    }
+
+    .bill-status {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 8px;
+      border-radius: 20px;
+    }
+
+    .bill-status.paid {
+      background: #dcfce7;
+      color: #166534;
+    }
+
+    .bill-status.unpaid {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    .bill-header {
+      text-align: center;
+      font-weight: 700;
+      font-size: 15px;
+      margin-bottom: 8px;
+    }
+
+    .bill-table {
+      width: 100%;
+      font-size: 13px;
+      border-collapse: collapse;
+    }
+
+    .bill-table th,
+    .bill-table td {
+      padding: 6px 0;
+    }
+
+    .bill-table th {
+      border-bottom: 1px dashed #ccc;
+      font-size: 12px;
+      color: #6b7280;
+    }
+
+    .bill-total {
+      margin-top: 10px;
+      padding-top: 8px;
+      border-top: 2px dashed #ccc;
+      display: flex;
+      justify-content: space-between;
+      font-weight: 700;
+    }
+
+    /* ===== CART ===== */
+    .cart-item {
+      display: grid;
+      grid-template-columns: 1fr 90px 70px;
+      gap: 6px;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .cart-controls {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+    }
+
+    .cart-controls button {
+      width: 26px;
+      height: 26px;
+      padding: 0;
+      font-size: 14px;
+      font-weight: 700;
+      border-radius: 6px;
+      border: none;
+      background: #f3f4f6;
+      color: #374151;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .cart-controls button:hover {
+      background: #e5e7eb;
+    }
+
+    input {
+      width: 100%;
+      padding: 10px 12px;
+      margin-bottom: 12px;
+      border-radius: 8px;
+      border: 2px solid #e5e7eb;
+      font-size: 14px;
+      transition: border-color 0.2s;
+    }
+
+    input:focus {
+      outline: none;
+      border-color: #2563eb;
+    }
+
+    button {
+      padding: 12px;
+      border: none;
+      border-radius: 8px;
+      background: #2563eb;
+      color: #fff;
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+      width: 100%;
+      margin-top: auto;
+      transition: all 0.2s;
+    }
+
+    button:hover {
+      background: #1d4ed8;
+      transform: translateY(-1px);
+    }
+
+    button.secondary {
+      background: #6b7280;
+    }
+
+    button.secondary:hover {
+      background: #4b5563;
+    }
+
+    button.danger {
+      background: #dc2626;
+    }
+
+    button.danger:hover {
+      background: #b91c1c;
+    }
+
+    /* ===== ORDERS ===== */
+    .order {
+      border-left: 4px solid #22c55e;
+      padding: 12px;
+      margin-bottom: 12px;
+      cursor: pointer;
+      border-radius: 8px;
+      background: #f0fdf4;
+      transition: all 0.2s;
+    }
+
+    .order:hover {
+      background: #dcfce7;
+      transform: translateX(4px);
+    }
+
+    .order.completed {
+      opacity: .5;
+      pointer-events: none;
+      text-decoration: line-through;
+      position: relative;
+      background: #f3f4f6;
+    }
+
+    .order.completed::after {
+      content: "PAID";
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      background: #dcfce7;
+      color: #16a34a;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 8px;
+      border-radius: 6px;
+    }
+
+    /* Scrollbar styling */
+    .panel::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .panel::-webkit-scrollbar-track {
+      background: #f1f5f9;
+      border-radius: 3px;
+    }
+
+    .panel::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 3px;
+    }
+
+    .panel::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+
+    .no-items {
+      text-align: center;
+      color: #6b7280;
+      font-style: italic;
+      padding: 40px 20px;
+    }
+
+    .stats {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+      font-size: 13px;
+      color: #6b7280;
+    }
+
+    input {
+      font-family: 'Inter', sans-serif;
+    }
+
+    .menu-buttons-container {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      padding-top: 20px;
+      border-top: 2px solid var(--gray-200);
+    }
+
+    /* ===== PAGE HEADER ===== */
+    .page-header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 56px;
+      background: #111827;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+      font-size: 18px;
+      font-weight: 700;
+      z-index: 1000;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .page-header button {
+      width: auto;
+      padding: 8px 14px;
+      font-size: 13px;
+      margin: 0;
+    }
+
+    /* Push content below header */
+    body {
+      padding-top: 72px;
+    }
+
+    /* ===== RECEIPT DESIGN ===== */
+
+    .receipt {
+      font-family: 'Inter', monospace;
+      max-width: 320px;
+      margin: auto;
+      background: #fff;
+      padding: 16px;
+      color: #000;
+    }
+
+    .receipt-header {
+      text-align: center;
+    }
+
+    .receipt-header h2 {
+      margin: 0;
+      font-size: 20px;
+      font-weight: 800;
+    }
+
+    .receipt-sub {
+      font-size: 12px;
+      color: #555;
+      margin-top: 4px;
+    }
+
+    .receipt-divider {
+      border-top: 1px dashed #999;
+      margin: 12px 0;
+    }
+
+    .receipt-table {
+      width: 100%;
+      font-size: 13px;
+      border-collapse: collapse;
+    }
+
+    .receipt-table th {
+      font-size: 12px;
+      color: #555;
+      padding-bottom: 6px;
+    }
+
+    .receipt-table td {
+      padding: 6px 0;
+    }
+
+    .receipt-total {
+      display: flex;
+      justify-content: space-between;
+      font-size: 16px;
+      font-weight: 800;
+      margin-top: 8px;
+    }
+
+    .receipt-footer {
+      text-align: center;
+      font-size: 12px;
+      margin-top: 14px;
+      color: #555;
+    }
+
+    @media print {
+      body * {
+        visibility: hidden;
+      }
+
+      #bill,
+      #bill * {
+        visibility: visible;
+      }
+
+      #bill {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+      }
+
+      @page {
+        size: 80mm auto;
+        margin: 5mm;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="page-header">
+    <div>☕ Cafe Brewtopia</div>
+    <button class="secondary" onclick="logout()">🚪 Logout</button>
+  </div>
+
+  <!-- MENU -->
+  <div class="panel">
+    <h3>☕ Menu</h3>
+
+    <!-- Enhanced Menu Controls -->
+    <div class="menu-controls">
+      <input type="text" class="menu-search" id="menuSearch" placeholder="🔍 Search menu items...">
+    </div>
+
+    <div class="stats">
+      <span id="menuStats">50+ items available</span>
+    </div>
+
+    <div id="menu"></div>
+  </div>
+
+  <!-- CART -->
+  <div class="panel">
+    <h3>🧾 Cart</h3>
+    <input id="tableNo" type="number" placeholder="Enter Table No">
+    <div id="cart"></div>
+    <h4>Total: ₹<span id="total">0</span></h4>
+    <button onclick="placeOrder()">Place / Update Order</button>
+  </div>
+
+  <!-- LIVE ORDERS -->
+  <div class="panel">
+    <h3>📦 Live Orders</h3>
+    <div id="orders"></div>
+  </div>
+
+  <!-- BILL -->
+  <div class="panel">
+    <h3>🧾 Bill</h3>
+    <div id="bill" style="flex: 1; overflow-y: auto; margin-bottom: 20px;"></div>
+
+    <!-- Perfectly Stacked Menu Buttons -->
+    <div class="menu-buttons-container">
+      <button class="menu-button secondary" onclick="printBill()">🖨 Print Bill</button>
+      <button class="menu-button danger" onclick="markPaid()">💰 Mark Paid</button>
+    </div>
+  </div>
+
+
+  <script>
+    const token = localStorage.getItem("token");
+    // console.log(token);
+
+    if (!token) {
+      window.location.href = "/login.html";
+    }
+  </script>
+
+  <script>
+    const API = "http://localhost:4000";
+    const socket = io(API);
+
+    let menuCategories = [];
+    let cart = [];
+    let currentOrderId = null;
+    let currentBillStatus = "UNPAID";
+    let currentFilter = 'all';
+
+    /* ======================
+       LOAD MENU
+    ====================== */
+    fetch(`${API}/api/menu`, {
+      headers: {
+        "Authorization": `Bearer ${localStorage.getItem("token")}`
+      }
+    })
+      .then(res => {
+        if (res.status === 401 || res.status === 403) {
+          localStorage.removeItem("token");
+          window.location.href = "/login.html";
+          throw new Error("Unauthorized");
+        }
+        return res.json();
+      })
+      .then(data => {
+        console.log("MENU DATA:", data);
+        menuCategories = data;
+        renderMenu();
+        setupMenuFilters();
+        updateMenuStats();
+      })
+      .catch(err => console.error("Menu load failed", err));
+
+    /* ======================
+       ENHANCED MENU FEATURES
+    ====================== */
+    function setupMenuFilters() {
+      document.querySelectorAll('.menu-filter').forEach(btn => {
+        btn.onclick = () => {
+          document.querySelectorAll('.menu-filter').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          currentFilter = btn.dataset.filter;
+          renderMenu();
+        };
+      });
+
+      document.getElementById('menuSearch').oninput = (e) => {
+        renderMenu(e.target.value.toLowerCase());
+      };
+    }
+
+    function updateMenuStats() {
+      const totalItems = menuCategories.reduce((sum, cat) => sum + (cat.items?.length || 0), 0);
+      document.getElementById('menuStats').textContent = `${totalItems} items available`;
+    }
+
+    function renderMenu(searchTerm = '') {
+      const div = document.getElementById("menu");
+      div.innerHTML = "";
+
+      let filteredCategories = menuCategories.filter(cat => {
+        if (!cat.items || cat.items.length === 0) return false;
+
+        // Filter by search term
+        if (searchTerm) {
+          return cat.items.some(item =>
+            item.name.toLowerCase().includes(searchTerm)
+          );
+        }
+
+        // Filter by category type (for demo - you can implement server-side filtering)
+        return true;
+      });
+
+      if (filteredCategories.length === 0) {
+        div.innerHTML = '<div class="no-items">No items found matching your search</div>';
+        return;
+      }
+
+      filteredCategories.forEach(cat => {
+        const filteredItems = cat.items.filter(item => {
+          if (searchTerm && !item.name.toLowerCase().includes(searchTerm)) return false;
+          return true;
+        });
+
+        if (filteredItems.length === 0) return;
+
+        div.innerHTML += `
+          <div class="menu-category">
+            <h4>${cat.name} (${filteredItems.length})</h4>
+            <div class="menu-grid">
+              ${filteredItems.map(item => `
+                <div class="menu-card" onclick='addToCart(${JSON.stringify(item)})'>
+                  <div class="menu-item-count">${item.popular ? '★' : ''}</div>
+                  <div class="menu-name">${item.name}</div>
+                  <div class="menu-price">₹${item.price}</div>
+                </div>
+              `).join("")}
+            </div>
+          </div>
+        `;
+      });
+    }
+
+    /* ======================
+       CART (unchanged functionality)
+    ====================== */
+    function addToCart(product) {
+      const item = cart.find(i => i.id === product.id);
+      if (item) item.qty++;
+      else cart.push({ ...product, qty: 1 });
+      renderCart();
+    }
+
+    function changeQty(index, delta) {
+      cart[index].qty += delta;
+      if (cart[index].qty <= 0) cart.splice(index, 1);
+      renderCart();
+    }
+
+    function renderCart() {
+      const div = document.getElementById("cart");
+      div.innerHTML = "";
+      let total = 0;
+
+      cart.forEach((i, index) => {
+        total += i.price * i.qty;
+        div.innerHTML += `
+          <div class="cart-item">
+            <span>${i.name}</span>
+            <div class="cart-controls">
+              <button onclick="changeQty(${index}, -1)">−</button>
+              <strong>${i.qty}</strong>
+              <button onclick="changeQty(${index}, 1)">+</button>
+            </div>
+            <span>₹${i.price * i.qty}</span>
+          </div>
+        `;
+      });
+
+      document.getElementById("total").innerText = total;
+    }
+
+    /* ======================
+       PLACE ORDER (unchanged)
+    ====================== */
+    function placeOrder() {
+      const tableNo = document.getElementById("tableNo").value;
+      if (!tableNo || cart.length === 0) {
+        alert("Missing table no or cart empty");
+        return;
+      }
+
+      const items = cart.map(i => ({
+        menuItemId: i.id,
+        quantity: i.qty
+      }));
+
+      const url = currentOrderId
+        ? `${API}/api/orders/${currentOrderId}`
+        : `${API}/api/orders`;
+
+      const method = currentOrderId ? "PUT" : "POST";
+
+      fetch(url, {
+        method,
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({ tableNo, items })
+      }).then(() => {
+        cart = [];
+        currentOrderId = null;
+        renderCart();
+        document.getElementById("tableNo").value = "";
+      });
+    }
+
+    /* ======================
+       SOCKET EVENTS (unchanged)
+    ====================== */
+    socket.on("new-order", order => {
+      const div = document.createElement("div");
+      div.className = "order";
+      div.id = `order-${order.id}`;
+      div.innerHTML = `
+        <strong>Table ${order.tableNo}</strong><br>
+        Order #${order.id}<br>
+        ₹${order.total}
+      `;
+      div.onclick = () => editOrder(order.id);
+      document.getElementById("orders").prepend(div);
+    });
+
+    socket.on("order-updated", order => {
+      const el = document.getElementById(`order-${order.id}`);
+      if (!el || el.classList.contains("completed")) return;
+      el.innerHTML = `
+        <strong>Table ${order.tableNo}</strong><br>
+        Order #${order.id}<br>
+        ₹${order.total}
+      `;
+    });
+
+    socket.on("order-paid", order => {
+      const el = document.getElementById(`order-${order.id}`);
+      if (el) el.classList.add("completed");
+    });
+
+    /* ======================
+       EDIT + BILL (unchanged)
+    ====================== */
+    function editOrder(orderId) {
+      const token = localStorage.getItem("token");
+
+      if (!token) {
+        window.location.href = "/login.html";
+        return;
+      }
+
+      fetch(`${API}/api/orders/${orderId}`, {
+        headers: {
+          "Authorization": `Bearer ${token}`
+        }
+      })
+        .then(res => {
+          if (res.status === 401 || res.status === 403) {
+            localStorage.removeItem("token");
+            window.location.href = "/login.html";
+            throw new Error("Unauthorized");
+          }
+          return res.json();
+        })
+        .then(order => {
+          currentOrderId = order.id;
+          cart = [];
+          document.getElementById("tableNo").value = order.tableNo;
+
+          order.items.forEach(i => {
+            cart.push({
+              id: i.menuItem.id,
+              name: i.menuItem.name,
+              price: i.price,
+              qty: i.quantity
+            });
+          });
+
+          renderCart();
+          loadBill(orderId);
+        })
+        .catch(err => console.error("Edit order failed", err));
+    }
+
+
+    function loadBill(orderId) {
+      fetch(`${API}/api/orders/${orderId}`, {
+        headers: {
+          "Authorization": `Bearer ${token}`
+        }
+      })
+        .then(res => res.json())
+        .then(order => {
+          document.getElementById("bill").innerHTML = `
+        <div class="receipt">
+          
+          <div class="receipt-header">
+            <h2>☕ Cafe Brewtopia</h2>
+            <div class="receipt-sub">
+              Table ${order.tableNo}<br>
+              ${new Date().toLocaleString()}
+            </div>
+          </div>
+
+          <div class="receipt-divider"></div>
+
+          <table class="receipt-table">
+            <thead>
+              <tr>
+                <th align="left">Item</th>
+                <th align="center">Qty</th>
+                <th align="right">Amt</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${order.items.map(i => `
+                <tr>
+                  <td>${i.menuItem.name}</td>
+                  <td align="center">${i.quantity}</td>
+                  <td align="right">₹${i.price * i.quantity}</td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+
+          <div class="receipt-divider"></div>
+
+          <div class="receipt-total">
+            <span>Total</span>
+            <span>₹${order.total}</span>
+          </div>
+
+          <div class="receipt-footer">
+            Thank you for visiting! ❤️<br>
+            Please visit again
+          </div>
+
+        </div>
+      `;
+        });
+    }
+
+
+    function markPaid() {
+      if (!currentOrderId) {
+        alert("Select an order");
+        return;
+      }
+
+      const id = currentOrderId;
+
+      fetch(`${API}/api/orders/${id}/pay`, {
+        method: "PUT",
+        headers: {
+          "Authorization": `Bearer ${token}`
+        }
+      })
+        .then(() => {
+          currentOrderId = null;
+          cart = [];
+          document.getElementById("tableNo").value = "";
+          document.getElementById("cart").innerHTML = "";
+          document.getElementById("total").innerText = "0";
+          document.getElementById("bill").innerHTML = "";
+        });
+    }
+
+    function logout() {
+      localStorage.removeItem("token");
+      window.location.href = "/login.html";
+    }
+
+    function printBill() {
+      const billContent = document.getElementById("bill").innerHTML;
+
+      if (!billContent.trim()) {
+        alert("No bill to print");
+        return;
+      }
+
+      const printWindow = window.open("", "", "width=380,height=600");
+
+      printWindow.document.open();
+      printWindow.document.write(`
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>Cafe Brewtopia - Bill</title>
+        <style>
+          body {
+            font-family: 'Inter', monospace;
+            background: #fff;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+          }
+
+          .receipt {
+            width: 80mm;
+            padding: 16px;
+            color: #000;
+          }
+
+          .receipt-header {
+            text-align: center;
+          }
+
+          .receipt-header h2 {
+            margin: 0;
+            font-size: 20px;
+            font-weight: 800;
+          }
+
+          .receipt-sub {
+            font-size: 12px;
+            color: #555;
+            margin-top: 4px;
+          }
+
+          .receipt-divider {
+            border-top: 1px dashed #000;
+            margin: 12px 0;
+          }
+
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+          }
+
+          th {
+            font-size: 12px;
+            padding-bottom: 6px;
+          }
+
+          td {
+            padding: 6px 0;
+          }
+
+          .receipt-total {
+            display: flex;
+            justify-content: space-between;
+            font-size: 16px;
+            font-weight: 800;
+            margin-top: 8px;
+          }
+
+          .receipt-footer {
+            text-align: center;
+            font-size: 12px;
+            margin-top: 14px;
+            color: #555;
+          }
+
+          @page {
+            size: 80mm auto;
+            margin: 5mm;
+          }
+        </style>
+      </head>
+      <body>
+        ${billContent}
+      </body>
+    </html>
+  `);
+      printWindow.document.close();
+
+      // ✅ Trigger print AFTER document is ready
+      printWindow.onload = function () {
+        printWindow.print();
+        printWindow.close();
+      };
+    }
+
+
+
+
+
+  </script>
+</body>
+
+</html>

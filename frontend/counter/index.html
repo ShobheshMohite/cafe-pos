@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Cafe Counter</title>
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+  <style>
+    body { font-family: Arial; background: #f4f4f4; }
+    .order {
+      background: white;
+      padding: 10px;
+      margin: 10px;
+      border-left: 5px solid green;
+    }
+  </style>
+</head>
+<body>
+
+<h2>🖥️ Live Orders</h2>
+<div id="orders"></div>
+
+<script>
+  const socket = io("http://localhost:4000");
+
+  socket.on("new-order", (order) => {
+    const div = document.createElement("div");
+    div.className = "order";
+    div.innerHTML = `
+      <h4>Order #${order.id}</h4>
+      <p>Total: ₹${order.total}</p>
+      <p>Status: ${order.status}</p>
+    `;
+    document.getElementById("orders").prepend(div);
+  });
+</script>
+
+</body>
+</html>

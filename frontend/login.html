@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cafe POS Login</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+      overflow: hidden;
+      position: relative;
+    }
+
+    body::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: 
+        radial-gradient(circle at 20% 80%, rgba(120,119,198,0.3) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(255,119,198,0.3) 0%, transparent 50%),
+        radial-gradient(circle at 40% 40%, rgba(120,219,255,0.3) 0%, transparent 50%);
+      animation: float 20s ease-in-out infinite;
+      z-index: 1;
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0px) rotate(0deg); }
+      33% { transform: translateY(-20px) rotate(1deg); }
+      66% { transform: translateY(-10px) rotate(-1deg); }
+    }
+
+    .login-container {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 48px 40px;
+      border-radius: 24px;
+      width: 100%;
+      max-width: 380px;
+      box-shadow: 
+        0 25px 50px -12px rgba(0, 0, 0, 0.15),
+        0 0 0 1px rgba(255, 255, 255, 0.05);
+      position: relative;
+      z-index: 2;
+      transform: translateY(0);
+      animation: slideUp 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    }
+
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateY(30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .logo {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+
+    .logo-icon {
+      width: 72px;
+      height: 72px;
+      background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 16px;
+      font-size: 32px;
+      box-shadow: 0 16px 40px rgba(37, 99, 235, 0.3);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+
+    .logo-title {
+      font-size: 28px;
+      font-weight: 700;
+      background: linear-gradient(135deg, #1f2937 0%, #374151 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: -0.5px;
+      margin: 0;
+    }
+
+    .logo-subtitle {
+      color: #6b7280;
+      font-size: 16px;
+      font-weight: 400;
+      margin-top: 4px;
+      letter-spacing: 0.5px;
+    }
+
+    .form-group {
+      margin-bottom: 24px;
+      position: relative;
+    }
+
+    .form-group:last-child {
+      margin-bottom: 0;
+    }
+
+    input {
+      width: 100%;
+      padding: 16px 20px;
+      border: 2px solid #e5e7eb;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 500;
+      background: rgba(255, 255, 255, 0.8);
+      backdrop-filter: blur(10px);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      outline: none;
+    }
+
+    input:focus {
+      border-color: #2563eb;
+      box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
+      background: white;
+      transform: translateY(-2px);
+    }
+
+    input::placeholder {
+      color: #9ca3af;
+      font-weight: 400;
+    }
+
+    .login-btn {
+      width: 100%;
+      padding: 18px 24px;
+      background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 50%, #1e40af 100%);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      box-shadow: 0 12px 32px rgba(37, 99, 235, 0.4);
+    }
+
+    .login-btn:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 20px 40px rgba(37, 99, 235, 0.5);
+    }
+
+    .login-btn:active {
+      transform: translateY(-1px);
+    }
+
+    .login-btn:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: 0 8px 20px rgba(37, 99, 235, 0.2);
+    }
+
+    .btn-ripple {
+      position: absolute;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.3);
+      transform: scale(0);
+      animation: ripple 0.6s linear;
+      pointer-events: none;
+    }
+
+    @keyframes ripple {
+      to {
+        transform: scale(4);
+        opacity: 0;
+      }
+    }
+
+    .footer {
+      text-align: center;
+      margin-top: 24px;
+      padding-top: 24px;
+      border-top: 1px solid #e5e7eb;
+      color: #9ca3af;
+      font-size: 14px;
+      font-weight: 400;
+    }
+
+    @media (max-width: 480px) {
+      .login-container {
+        margin: 20px;
+        padding: 36px 24px;
+        border-radius: 20px;
+      }
+      
+      .logo-icon {
+        width: 60px;
+        height: 60px;
+        font-size: 28px;
+      }
+      
+      .logo-title {
+        font-size: 24px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="login-container">
+    <div class="logo">
+      <div class="logo-icon">☕</div>
+      <h1 class="logo-title">Cafe Brewtopia</h1>
+      <p class="logo-subtitle">POS System Login</p>
+    </div>
+
+    <div class="form-group">
+      <input id="username" type="text" placeholder="👤 Username" required>
+    </div>
+
+    <div class="form-group">
+      <input id="password" type="password" placeholder="🔒 Password" required>
+    </div>
+
+    <button class="login-btn" onclick="login()">
+      Sign In
+    </button>
+
+    <div class="footer">
+      Welcome back to Cafe Brewtopia POS
+    </div>
+  </div>
+
+  <script>
+    const API = "http://localhost:4000";
+
+    // Add enter key support
+    document.addEventListener('DOMContentLoaded', function() {
+      const username = document.getElementById('username');
+      const password = document.getElementById('password');
+      
+      // Focus first input
+      username.focus();
+      
+      // Enter key support
+      document.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+          login();
+        }
+      });
+    });
+
+    function login() {
+      const usernameEl = document.getElementById('username');
+      const passwordEl = document.getElementById('password');
+      const btn = document.querySelector('.login-btn');
+      
+      const username = usernameEl.value.trim();
+      const password = passwordEl.value;
+      
+      if (!username || !password) {
+        alert('Please enter both username and password');
+        return;
+      }
+      
+      // Disable button and show loading
+      btn.disabled = true;
+      btn.textContent = 'Signing In...';
+      
+      fetch(`${API}/api/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username: username,
+          password: password
+        })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (!data.token) {
+          alert('Invalid username or password');
+          btn.disabled = false;
+          btn.textContent = 'Sign In';
+          usernameEl.focus();
+          return;
+        }
+        
+        // Success - store token and redirect
+        localStorage.setItem("token", data.token);
+        window.location.href = "/pos/index.html";
+      })
+      .catch(err => {
+        console.error('Login error:', err);
+        alert('Login failed. Please try again.');
+        btn.disabled = false;
+        btn.textContent = 'Sign In';
+        usernameEl.focus();
+      });
+    }
+  </script>
+</body>
+</html>

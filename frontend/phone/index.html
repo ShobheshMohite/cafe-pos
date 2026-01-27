@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Take Order</title>
+</head>
+<body>
+
+<h2>📱 Take Order</h2>
+<div id="menu"></div>
+<button onclick="placeOrder()">Place Order</button>
+
+<script>
+let menu = [];
+let cart = [];
+
+fetch("http://localhost:4000/api/products")
+  .then(res => res.json())
+  .then(data => {
+    menu = data;
+    const div = document.getElementById("menu");
+
+    data.forEach(p => {
+      const btn = document.createElement("button");
+      btn.innerText = `${p.name} ₹${p.price}`;
+      btn.onclick = () => addToCart(p.id);
+      div.appendChild(btn);
+      div.appendChild(document.createElement("br"));
+    });
+  });
+
+function addToCart(productId) {
+  const item = cart.find(i => i.productId === productId);
+  if (item) item.quantity++;
+  else cart.push({ productId, quantity: 1 });
+}
+
+function placeOrder() {
+  fetch("http://localhost:4000/api/orders", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ items: cart })
+  }).then(() => {
+    alert("Order Sent!");
+    cart = [];
+  });
+}
+</script>
+
+</body>
+</html>
