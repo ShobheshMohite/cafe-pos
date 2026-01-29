@@ -4,7 +4,8 @@
   "type": "module",
   "main": "index.js",
   "scripts": {
-    "dev": "node index.js"
+    "dev": "node index.js",
+    "start": "npx prisma generate && npx prisma migrate deploy || true && node backend/src/server.js"
   },
   "dependencies": {
     "@prisma/client": "^6.19.2",
@@ -19,4 +20,5 @@
   "prisma": {
     "seed": "node prisma/seed.js"
   }
+  
 }
