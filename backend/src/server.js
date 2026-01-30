@@ -5,104 +5,111 @@ import http from "http";
 import { Server } from "socket.io";
 import path from "path";
 import { fileURLToPath } from "url";
+import { exec } from "node:child_process";
+import { promisify } from "node:util";
 
 import menuRoutes from "./routes/menu.routes.js";
 import orderRoutes from "./routes/order.routes.js";
 import authRoutes from "./routes/auth.routes.js";
 
-dotenv.config();
-
-// At the top of server.js, after your imports
-console.log("Starting backend...");
-console.log(
-  "DATABASE_URL:",
-  process.env.DATABASE_URL ? "is set" : "MISSING !!!",
-);
-
-// Run migrations before starting the server
-async function runMigrations() {
-  try {
-    console.log("Running Prisma generate...");
-    // Prisma generate is a CLI command — run via child_process
-    const { exec } = await import("node:child_process");
-    const util = await import("node:util");
-    const execPromise = util.promisify(exec.exec);
-
-    await execPromise("npx prisma generate");
-    console.log("Prisma generate completed.");
-
-    console.log("Running prisma migrate deploy...");
-    await execPromise("npx prisma migrate deploy");
-    console.log("Migrations completed successfully.");
-  } catch (err) {
-    console.error("Migration failed:", err.message || err);
-    console.error("Backend will continue anyway...");
-  }
+// Only load .env in development (Render uses dashboard env vars)
+if (process.env.NODE_ENV !== "production") {
+  dotenv.config();
 }
 
-// Call it and then start the server
-runMigrations()
-  .then(() => {
-    // Your existing server startup code here
-    // e.g.
-    const PORT = process.env.PORT || 10000;
-    app.listen(PORT, () => {
-      console.log(`🚀 Server running on http://localhost:${PORT}`);
-    });
-  })
-  .catch((err) => {
-    console.error("Fatal error during startup:", err);
-  });
-
-const app = express();
-
-/* ================= PATH FIX (ESM) ================= */
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-/* ================= MIDDLEWARE ================= */
-app.use(cors());
-app.use(express.json());
+console.log("Starting backend...");
+console.log("Environment:", process.env.NODE_ENV || "development");
+console.log("DATABASE_URL:", process.env.DATABASE_URL ? "is set" : "MISSING !!!");
 
-/* ================= SERVE FRONTEND ================= */
-// THIS IS THE MISSING PIECE ✅
-app.use(express.static(path.join(__dirname, "../../frontend")));
+// ────────────────────────────────────────────────────────────────
+// Run Prisma migrations safely before starting the server
+// ────────────────────────────────────────────────────────────────
+async function runMigrations() {
+  try {
+    console.log("Running Prisma generate...");
+    const generateResult = await promisify(exec)("npx prisma generate");
+    console.log("Prisma generate output:", generateResult.stdout.trim() || "Done");
 
-/* ================= HTTP + SOCKET ================= */
-const server = http.createServer(app);
+    console.log("Running prisma migrate deploy...");
+    const migrateResult = await promisify(exec)("npx prisma migrate deploy");
+    console.log("Prisma migrate output:", migrateResult.stdout.trim() || "No pending migrations");
 
-const io = new Server(server, {
-  cors: {
-    origin: "*",
-    methods: ["GET", "POST", "PUT"],
-  },
-});
+    console.log("Migrations completed successfully.");
+  } catch (err) {
+    console.error("Migration step failed:", err.message || err);
+    console.error("Backend will continue starting anyway...");
+  }
+}
 
-/* Make io available in routes */
-app.set("io", io);
+// ────────────────────────────────────────────────────────────────
+// Main startup sequence
+// ────────────────────────────────────────────────────────────────
+async function startServer() {
+  await runMigrations();
 
-/* ================= SOCKET EVENTS ================= */
-io.on("connection", (socket) => {
-  console.log("🟢 Client connected:", socket.id);
+  const app = express();
 
-  socket.on("disconnect", () => {
-    console.log("🔴 Client disconnected:", socket.id);
+  // Middleware
+  app.use(cors({
+    origin: "*", // Change to your frontend URL in production
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    credentials: true,
+  }));
+  app.use(express.json());
+
+  // Serve frontend static files (from monorepo structure)
+  app.use(express.static(path.join(__dirname, "../../frontend")));
+
+  // API routes
+  app.use("/api/menu", menuRoutes);
+  app.use("/api/orders", orderRoutes);
+  app.use("/api/auth", authRoutes);
+
+  // Health check / default route
+  app.get("/", (req, res) => {
+    res.send("☕ Cafe POS Backend Running");
   });
-});
 
-/* ================= API ROUTES ================= */
-app.use("/api/menu", menuRoutes);
-app.use("/api/orders", orderRoutes);
-app.use("/api/auth", authRoutes);
+  // Catch-all for SPA routing (serve index.html for React/Vite/etc. if needed)
+  app.get("*", (req, res) => {
+    res.sendFile(path.join(__dirname, "../../frontend", "index.html"));
+  });
 
-/* ================= DEFAULT ROUTE ================= */
-app.get("/", (req, res) => {
-  res.send("☕ Cafe POS Backend Running");
-});
+  // Create HTTP + Socket.IO server
+  const server = http.createServer(app);
 
-/* ================= START SERVER ================= */
-const PORT = process.env.PORT || 4000;
+  const io = new Server(server, {
+    cors: {
+      origin: "*", // Change to specific frontend URL in production
+      methods: ["GET", "POST"],
+    },
+  });
 
-server.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`);
+  // Make io available in routes if needed
+  app.set("io", io);
+
+  // Socket events
+  io.on("connection", (socket) => {
+    console.log("🟢 Client connected:", socket.id);
+
+    socket.on("disconnect", () => {
+      console.log("🔴 Client disconnected:", socket.id);
+    });
+  });
+
+  // Start listening
+  const PORT = process.env.PORT || 4000;
+  server.listen(PORT, () => {
+    console.log(`🚀 Server running on http://localhost:${PORT}`);
+    console.log(`Primary URL: https://cafe-brewtopia-api-qsjq.onrender.com`);
+  });
+}
+
+// Start everything
+startServer().catch((err) => {
+  console.error("Fatal error during startup:", err);
+  process.exit(1);
 });
