@@ -631,7 +631,8 @@
         return res.json();
       })
       .then(data => {
-        menuCategories = data;
+        console.log("Menu data received:", data);
+        menuCategories = data || [];
         renderMenu();
         updateMenuStats();
       })
