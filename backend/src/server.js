@@ -12,6 +12,31 @@ import authRoutes from "./routes/auth.routes.js";
 
 dotenv.config();
 
+console.log("Starting backend...");
+console.log(
+  "DATABASE_URL:",
+  process.env.DATABASE_URL ? "is set" : "MISSING !!!",
+);
+
+async function runMigrations() {
+  try {
+    console.log("Running Prisma generate...");
+    await import("@prisma/client"); // force client load
+    console.log("Running prisma migrate deploy...");
+    const { execSync } = require("child_process");
+    execSync("npx prisma migrate deploy", { stdio: "inherit" });
+    console.log("Migrations completed successfully.");
+  } catch (err) {
+    console.error("Migration failed:", err.message);
+    console.error("Backend will continue anyway...");
+  }
+}
+
+runMigrations().then(() => {
+  // continue starting server
+  // your existing app.listen() code here
+});
+
 const app = express();
 
 /* ================= PATH FIX (ESM) ================= */
@@ -32,8 +57,8 @@ const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
     origin: "*",
-    methods: ["GET", "POST", "PUT"]
-  }
+    methods: ["GET", "POST", "PUT"],
+  },
 });
 
 /* Make io available in routes */
