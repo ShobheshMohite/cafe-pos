@@ -24,9 +24,7 @@ console.log("Starting backend...");
 console.log("Environment:", process.env.NODE_ENV || "development");
 console.log("DATABASE_URL:", process.env.DATABASE_URL ? "is set" : "MISSING !!!");
 
-// ────────────────────────────────────────────────────────────────
-// Run Prisma migrations safely before starting the server
-// ────────────────────────────────────────────────────────────────
+// Run Prisma migrations safely
 async function runMigrations() {
   try {
     console.log("Running Prisma generate...");
@@ -44,23 +42,20 @@ async function runMigrations() {
   }
 }
 
-// ────────────────────────────────────────────────────────────────
-// Main startup sequence
-// ────────────────────────────────────────────────────────────────
+// Main startup
 async function startServer() {
   await runMigrations();
 
   const app = express();
 
-  // Middleware
   app.use(cors({
-    origin: "*", // Change to your frontend URL in production
+    origin: "*", // ← tighten to 'https://cafe-pos.onrender.com' later
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     credentials: true,
   }));
   app.use(express.json());
 
-  // Serve frontend static files (from monorepo structure)
+  // Serve frontend static files
   app.use(express.static(path.join(__dirname, "../../frontend")));
 
   // API routes
@@ -68,39 +63,34 @@ async function startServer() {
   app.use("/api/orders", orderRoutes);
   app.use("/api/auth", authRoutes);
 
-  // Health check / default route
+  // Health check
   app.get("/", (req, res) => {
     res.send("☕ Cafe POS Backend Running");
   });
 
-  // Catch-all for SPA routing (serve index.html for React/Vite/etc. if needed)
-  app.get("*", (req, res) => {
+  // SPA fallback – Express 5 compatible wildcard (FIXED HERE)
+  app.get("/*path", (req, res) => {
     res.sendFile(path.join(__dirname, "../../frontend", "index.html"));
   });
 
-  // Create HTTP + Socket.IO server
   const server = http.createServer(app);
 
   const io = new Server(server, {
     cors: {
-      origin: "*", // Change to specific frontend URL in production
+      origin: "*",
       methods: ["GET", "POST"],
     },
   });
 
-  // Make io available in routes if needed
   app.set("io", io);
 
-  // Socket events
   io.on("connection", (socket) => {
     console.log("🟢 Client connected:", socket.id);
-
     socket.on("disconnect", () => {
       console.log("🔴 Client disconnected:", socket.id);
     });
   });
 
-  // Start listening
   const PORT = process.env.PORT || 4000;
   server.listen(PORT, () => {
     console.log(`🚀 Server running on http://localhost:${PORT}`);
@@ -108,7 +98,6 @@ async function startServer() {
   });
 }
 
-// Start everything
 startServer().catch((err) => {
   console.error("Fatal error during startup:", err);
   process.exit(1);
