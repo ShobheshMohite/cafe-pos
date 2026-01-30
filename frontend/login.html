@@ -235,7 +235,6 @@
       <h1 class="logo-title">Cafe Brewtopia</h1>
       <p class="logo-subtitle">System Login</p>
     </div>
-    
 
     <div class="form-group">
       <input id="username" type="text" placeholder="👤 Username" required>
@@ -255,17 +254,24 @@
   </div>
 
   <script>
-    const API = "http://localhost:4000";
+    // ────────────────────────────────────────────────────────────────
+    // IMPORTANT: Use your REAL Render backend URL here
+    // This is the line that was causing localhost error
+    // ────────────────────────────────────────────────────────────────
+    const API = window.location.hostname.includes('localhost') || 
+                window.location.hostname.includes('127.0.0.1')
+      ? 'http://localhost:4000'                           // for local development
+      : 'https://cafe-brewtopia-api-qsjq.onrender.com';   // your live backend
 
-    // Add enter key support
+    // Add enter key support + auto-focus
     document.addEventListener('DOMContentLoaded', function() {
       const username = document.getElementById('username');
       const password = document.getElementById('password');
       
-      // Focus first input
+      // Auto-focus username field
       username.focus();
       
-      // Enter key support
+      // Press Enter = login
       document.addEventListener('keypress', function(e) {
         if (e.key === 'Enter') {
           login();
@@ -286,7 +292,7 @@
         return;
       }
       
-      // Disable button and show loading
+      // Show loading state
       btn.disabled = true;
       btn.textContent = 'Signing In...';
       
@@ -298,7 +304,12 @@
           password: password
         })
       })
-      .then(res => res.json())
+      .then(res => {
+        if (!res.ok) {
+          throw new Error(`HTTP error! Status: ${res.status}`);
+        }
+        return res.json();
+      })
       .then(data => {
         if (!data.token) {
           alert('Invalid username or password');
@@ -308,13 +319,13 @@
           return;
         }
         
-        // Success - store token and redirect
+        // Success
         localStorage.setItem("token", data.token);
         window.location.href = "/pos/index.html";
       })
       .catch(err => {
         console.error('Login error:', err);
-        alert('Login failed. Please try again.');
+        alert('Login failed. Please check your connection or credentials.');
         btn.disabled = false;
         btn.textContent = 'Sign In';
         usernameEl.focus();
