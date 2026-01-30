@@ -12,30 +12,47 @@ import authRoutes from "./routes/auth.routes.js";
 
 dotenv.config();
 
+// At the top of server.js, after your imports
 console.log("Starting backend...");
 console.log(
   "DATABASE_URL:",
   process.env.DATABASE_URL ? "is set" : "MISSING !!!",
 );
 
+// Run migrations before starting the server
 async function runMigrations() {
   try {
     console.log("Running Prisma generate...");
-    await import("@prisma/client"); // force client load
+    // Prisma generate is a CLI command — run via child_process
+    const { exec } = await import("node:child_process");
+    const util = await import("node:util");
+    const execPromise = util.promisify(exec.exec);
+
+    await execPromise("npx prisma generate");
+    console.log("Prisma generate completed.");
+
     console.log("Running prisma migrate deploy...");
-    const { execSync } = require("child_process");
-    execSync("npx prisma migrate deploy", { stdio: "inherit" });
+    await execPromise("npx prisma migrate deploy");
     console.log("Migrations completed successfully.");
   } catch (err) {
-    console.error("Migration failed:", err.message);
+    console.error("Migration failed:", err.message || err);
     console.error("Backend will continue anyway...");
   }
 }
 
-runMigrations().then(() => {
-  // continue starting server
-  // your existing app.listen() code here
-});
+// Call it and then start the server
+runMigrations()
+  .then(() => {
+    // Your existing server startup code here
+    // e.g.
+    const PORT = process.env.PORT || 10000;
+    app.listen(PORT, () => {
+      console.log(`🚀 Server running on http://localhost:${PORT}`);
+    });
+  })
+  .catch((err) => {
+    console.error("Fatal error during startup:", err);
+  });
 
 const app = express();
 
