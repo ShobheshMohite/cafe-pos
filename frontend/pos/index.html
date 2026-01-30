@@ -573,7 +573,9 @@
     const token = localStorage.getItem("token");
     if (!token) window.location.href = "/login.html";
 
-    const API = "http://localhost:4000";
+    const API = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+      ? 'http://localhost:4000'
+      : 'https://cafe-brewtopia-api-qsjq.onrender.com';
     const socket = io(API);
 
     let menuCategories = [];
